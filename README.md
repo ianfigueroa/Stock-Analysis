@@ -38,24 +38,6 @@ Scores are weighted and combined to generate an overall recommendation with deta
 - P&L diagram at expiration
 - Educational explanations of each Greek
 
-## Quick Start
-
-```bash
-git clone https://github.com/ianfigueroa/Stock-Analysis.git
-cd Stock-Analysis
-pip install -r requirements.txt
-streamlit run Market_dashboard.py
-```
-
-**Docker:**
-
-```bash
-docker build -t stock-analysis .
-docker run -p 8501:8501 stock-analysis
-```
-
-Open http://localhost:8501
-
 ## Tech Stack
 
 | Tool        | Purpose       |
