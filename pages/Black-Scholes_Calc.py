@@ -73,18 +73,20 @@ put_price, put_delta, put_gamma, put_theta, put_vega, put_rho = black_scholes(S,
 
 # Display option prices
 st.markdown("### Option Prices")
-col1, col2, col3 = st.columns([1, 1, 1])
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.metric("Call Price", "${:.2f}".format(call_price))
 with col2:
     st.metric("Put Price", "${:.2f}".format(put_price))
 with col3:
-    # Put-call parity: C - P = S - K*e^(-rT)
-    # If this doesn't hold, there's an arbitrage opportunity
-    parity_diff = call_price - put_price - S + K * np.exp(-r * T)
-    st.metric("Put-Call Parity", "${:.4f}".format(abs(parity_diff)), 
-              "Valid" if abs(parity_diff) < 0.01 else "Check inputs")
+    # Break-even for a long call: strike + premium paid
+    call_breakeven = K + call_price
+    st.metric("Call Break-Even", "${:.2f}".format(call_breakeven))
+with col4:
+    # Break-even for a long put: strike - premium paid
+    put_breakeven = K - put_price
+    st.metric("Put Break-Even", "${:.2f}".format(put_breakeven))
 
 st.markdown("---")
 
