@@ -5,10 +5,9 @@ from scipy.stats import norm
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-st.set_page_config(page_title="Options Pricing", page_icon="���", layout="wide")
+st.set_page_config(page_title="Options Pricing", page_icon=":bar_chart:", layout="wide")
 
 def black_scholes(S, K, T, r, sigma, option_type='call'):
-    """Black-Scholes option pricing"""
     if T <= 0 or sigma <= 0:
         intrinsic = max(0, S - K) if option_type == 'call' else max(0, K - S)
         return intrinsic, 0, 0, 0, 0, 0
@@ -34,9 +33,8 @@ def black_scholes(S, K, T, r, sigma, option_type='call'):
     return price, delta, gamma, theta, vega, rho
 
 
-st.title("��� Black-Scholes Options Calculator")
+st.title("Black-Scholes Options Calculator")
 
-# Sidebar inputs
 st.sidebar.header("Parameters")
 S = st.sidebar.number_input("Stock Price ($)", min_value=1.0, value=100.0, step=1.0)
 K = st.sidebar.number_input("Strike Price ($)", min_value=1.0, value=100.0, step=1.0)
@@ -44,27 +42,23 @@ T = st.sidebar.slider("Days to Expiration", min_value=1, max_value=730, value=30
 r = st.sidebar.slider("Risk-Free Rate (%)", min_value=0.0, max_value=15.0, value=5.0) / 100
 sigma = st.sidebar.slider("Implied Volatility (%)", min_value=1.0, max_value=150.0, value=25.0) / 100
 
-# Calculate both options
 call_price, call_delta, call_gamma, call_theta, call_vega, call_rho = black_scholes(S, K, T, r, sigma, 'call')
 put_price, put_delta, put_gamma, put_theta, put_vega, put_rho = black_scholes(S, K, T, r, sigma, 'put')
 
-# Display prices
 st.markdown("### Option Prices")
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
-    st.metric("Call Price", f"${call_price:.2f}")
+    st.metric("Call Price", "${:.2f}".format(call_price))
 with col2:
-    st.metric("Put Price", f"${put_price:.2f}")
+    st.metric("Put Price", "${:.2f}".format(put_price))
 with col3:
-    # Put-call parity check
     parity_diff = call_price - put_price - S + K * np.exp(-r * T)
-    st.metric("Put-Call Parity", f"${abs(parity_diff):.4f}", 
+    st.metric("Put-Call Parity", "${:.4f}".format(abs(parity_diff)), 
               "Valid" if abs(parity_diff) < 0.01 else "Check inputs")
 
 st.markdown("---")
 
-# Greeks display
 st.markdown("### The Greeks")
 
 greeks_col1, greeks_col2 = st.columns(2)
@@ -72,26 +66,25 @@ greeks_col1, greeks_col2 = st.columns(2)
 with greeks_col1:
     st.markdown("**Call Greeks**")
     gc1, gc2, gc3 = st.columns(3)
-    gc1.metric("Delta (Δ)", f"{call_delta:.4f}")
-    gc2.metric("Gamma (Γ)", f"{call_gamma:.4f}")
-    gc3.metric("Theta (Θ)", f"{call_theta:.4f}")
+    gc1.metric("Delta", "{:.4f}".format(call_delta))
+    gc2.metric("Gamma", "{:.4f}".format(call_gamma))
+    gc3.metric("Theta", "{:.4f}".format(call_theta))
     gc4, gc5, _ = st.columns(3)
-    gc4.metric("Vega (ν)", f"{call_vega:.4f}")
-    gc5.metric("Rho (ρ)", f"{call_rho:.4f}")
+    gc4.metric("Vega", "{:.4f}".format(call_vega))
+    gc5.metric("Rho", "{:.4f}".format(call_rho))
 
 with greeks_col2:
     st.markdown("**Put Greeks**")
     gp1, gp2, gp3 = st.columns(3)
-    gp1.metric("Delta (Δ)", f"{put_delta:.4f}")
-    gp2.metric("Gamma (Γ)", f"{put_gamma:.4f}")
-    gp3.metric("Theta (Θ)", f"{put_theta:.4f}")
+    gp1.metric("Delta", "{:.4f}".format(put_delta))
+    gp2.metric("Gamma", "{:.4f}".format(put_gamma))
+    gp3.metric("Theta", "{:.4f}".format(put_theta))
     gp4, gp5, _ = st.columns(3)
-    gp4.metric("Vega (ν)", f"{put_vega:.4f}")
-    gp5.metric("Rho (ρ)", f"{put_rho:.4f}")
+    gp4.metric("Vega", "{:.4f}".format(put_vega))
+    gp5.metric("Rho", "{:.4f}".format(put_rho))
 
 st.markdown("---")
 
-# Visualization
 st.markdown("### Price Sensitivity")
 
 viz_tab1, viz_tab2 = st.tabs(["Price vs Stock Price", "Price vs Volatility"])
@@ -135,7 +128,6 @@ with viz_tab2:
     )
     st.plotly_chart(fig2, use_container_width=True)
 
-# P&L at expiration
 st.markdown("---")
 st.markdown("### Profit/Loss at Expiration")
 
@@ -158,12 +150,11 @@ fig3.update_layout(
 )
 st.plotly_chart(fig3, use_container_width=True)
 
-# Info section
 with st.expander("About the Greeks"):
     st.markdown("""
-    - **Delta (Δ)**: Rate of change of option price with respect to stock price
-    - **Gamma (Γ)**: Rate of change of delta with respect to stock price  
-    - **Theta (Θ)**: Daily time decay (how much value the option loses per day)
-    - **Vega (ν)**: Sensitivity to 1% change in implied volatility
-    - **Rho (ρ)**: Sensitivity to 1% change in interest rate
+    - **Delta**: Rate of change of option price with respect to stock price
+    - **Gamma**: Rate of change of delta with respect to stock price  
+    - **Theta**: Daily time decay (how much value the option loses per day)
+    - **Vega**: Sensitivity to 1% change in implied volatility
+    - **Rho**: Sensitivity to 1% change in interest rate
     """)

@@ -5,7 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-st.set_page_config(page_title="Stock Dashboard", page_icon="���", layout="wide")
+st.set_page_config(page_title="Stock Dashboard", page_icon=":chart_with_upwards_trend:", layout="wide")
 
 
 def calc_rsi(prices, period=14):
@@ -29,78 +29,71 @@ def analyze_stock(info, hist, price, vol):
     max_score = 0
     analysis = []
 
-    # P/E Ratio Analysis
     pe = info.get('trailingPE')
     fwd_pe = info.get('forwardPE')
-    sector = info.get('sector', 'Unknown')
     
     max_score += 2
     if pe and pe > 0:
         if pe < 15:
             score += 2
-            analysis.append(f"✓ Low P/E ({pe:.1f}) - potentially undervalued")
+            analysis.append("[+] Low P/E ({:.1f}) - potentially undervalued".format(pe))
         elif pe < 25:
             score += 1
-            analysis.append(f"○ Moderate P/E ({pe:.1f}) - fairly valued")
+            analysis.append("[o] Moderate P/E ({:.1f}) - fairly valued".format(pe))
         else:
-            analysis.append(f"✗ High P/E ({pe:.1f}) - expensive valuation")
+            analysis.append("[-] High P/E ({:.1f}) - expensive valuation".format(pe))
     else:
-        analysis.append("○ P/E ratio unavailable")
+        analysis.append("[o] P/E ratio unavailable")
 
-    # PEG Ratio (growth-adjusted valuation)
     peg = info.get('pegRatio')
     max_score += 2
     if peg and peg > 0:
         if peg < 1:
             score += 2
-            analysis.append(f"✓ PEG ratio ({peg:.2f}) suggests undervalued relative to growth")
+            analysis.append("[+] PEG ratio ({:.2f}) suggests undervalued relative to growth".format(peg))
         elif peg < 2:
             score += 1
-            analysis.append(f"○ PEG ratio ({peg:.2f}) is reasonable")
+            analysis.append("[o] PEG ratio ({:.2f}) is reasonable".format(peg))
         else:
-            analysis.append(f"✗ PEG ratio ({peg:.2f}) - paying premium for growth")
+            analysis.append("[-] PEG ratio ({:.2f}) - paying premium for growth".format(peg))
 
-    # Profit Margins
     margin = info.get('profitMargins')
     max_score += 1
     if margin:
         if margin > 0.15:
             score += 1
-            analysis.append(f"✓ Strong profit margin ({margin:.1%})")
+            analysis.append("[+] Strong profit margin ({:.1%})".format(margin))
         elif margin > 0.05:
             score += 0.5
-            analysis.append(f"○ Acceptable profit margin ({margin:.1%})")
+            analysis.append("[o] Acceptable profit margin ({:.1%})".format(margin))
         else:
-            analysis.append(f"✗ Thin profit margin ({margin:.1%})")
+            analysis.append("[-] Thin profit margin ({:.1%})".format(margin))
 
-    # Debt/Equity
     de = info.get('debtToEquity')
     max_score += 1
     if de is not None:
-        de_ratio = de / 100  # yfinance reports as percentage
+        de_ratio = de / 100
         if de_ratio < 0.5:
             score += 1
-            analysis.append(f"✓ Low debt (D/E: {de_ratio:.2f})")
+            analysis.append("[+] Low debt (D/E: {:.2f})".format(de_ratio))
         elif de_ratio < 1.5:
             score += 0.5
-            analysis.append(f"○ Moderate debt (D/E: {de_ratio:.2f})")
+            analysis.append("[o] Moderate debt (D/E: {:.2f})".format(de_ratio))
         else:
-            analysis.append(f"✗ High debt load (D/E: {de_ratio:.2f})")
+            analysis.append("[-] High debt load (D/E: {:.2f})".format(de_ratio))
 
-    # Revenue Growth
     rev_growth = info.get('revenueGrowth')
     max_score += 1
     if rev_growth:
         if rev_growth > 0.15:
             score += 1
-            analysis.append(f"✓ Strong revenue growth ({rev_growth:.1%})")
+            analysis.append("[+] Strong revenue growth ({:.1%})".format(rev_growth))
         elif rev_growth > 0:
             score += 0.5
-            analysis.append(f"○ Positive revenue growth ({rev_growth:.1%})")
+            analysis.append("[o] Positive revenue growth ({:.1%})".format(rev_growth))
         else:
-            analysis.append(f"✗ Revenue declining ({rev_growth:.1%})")
+            analysis.append("[-] Revenue declining ({:.1%})".format(rev_growth))
 
-    # Moving Average Trend
     if len(hist) >= 200:
         ma50 = hist['Close'].rolling(50).mean().iloc[-1]
         ma200 = hist['Close'].rolling(200).mean().iloc[-1]
@@ -108,41 +101,38 @@ def analyze_stock(info, hist, price, vol):
         
         if price > ma50 > ma200:
             score += 2
-            analysis.append("✓ Bullish trend (price > 50 MA > 200 MA)")
+            analysis.append("[+] Bullish trend (price > 50 MA > 200 MA)")
         elif price > ma200:
             score += 1
-            analysis.append("○ Above 200-day MA but mixed signals")
+            analysis.append("[o] Above 200-day MA but mixed signals")
         else:
-            analysis.append("✗ Below key moving averages - bearish")
+            analysis.append("[-] Below key moving averages - bearish")
 
-    # RSI
     rsi = calc_rsi(hist['Close'])
     current_rsi = rsi.iloc[-1]
     max_score += 1
     
     if 30 < current_rsi < 70:
         score += 1
-        analysis.append(f"✓ RSI ({current_rsi:.0f}) in healthy range")
+        analysis.append("[+] RSI ({:.0f}) in healthy range".format(current_rsi))
     elif current_rsi <= 30:
         score += 0.5
-        analysis.append(f"○ RSI ({current_rsi:.0f}) oversold - could bounce")
+        analysis.append("[o] RSI ({:.0f}) oversold - could bounce".format(current_rsi))
     else:
-        analysis.append(f"✗ RSI ({current_rsi:.0f}) overbought - caution")
+        analysis.append("[-] RSI ({:.0f}) overbought - caution".format(current_rsi))
 
-    # MACD
     macd, signal = calc_macd(hist['Close'])
     max_score += 1
     if macd.iloc[-1] > signal.iloc[-1]:
         if macd.iloc[-2] <= signal.iloc[-2]:
             score += 1
-            analysis.append("✓ MACD bullish crossover")
+            analysis.append("[+] MACD bullish crossover")
         else:
             score += 0.5
-            analysis.append("○ MACD positive but no fresh signal")
+            analysis.append("[o] MACD positive but no fresh signal")
     else:
-        analysis.append("✗ MACD below signal line")
+        analysis.append("[-] MACD below signal line")
 
-    # 52-week position
     high_52w = hist['Close'][-252:].max() if len(hist) >= 252 else hist['Close'].max()
     low_52w = hist['Close'][-252:].min() if len(hist) >= 252 else hist['Close'].min()
     range_position = (price - low_52w) / (high_52w - low_52w) if high_52w != low_52w else 0.5
@@ -150,25 +140,23 @@ def analyze_stock(info, hist, price, vol):
     max_score += 1
     if range_position > 0.8:
         score += 1
-        analysis.append(f"✓ Near 52-week high ({range_position:.0%} of range)")
+        analysis.append("[+] Near 52-week high ({:.0%} of range)".format(range_position))
     elif range_position > 0.4:
         score += 0.5
-        analysis.append(f"○ Mid-range in 52-week ({range_position:.0%})")
+        analysis.append("[o] Mid-range in 52-week ({:.0%})".format(range_position))
     else:
-        analysis.append(f"✗ Near 52-week low ({range_position:.0%})")
+        analysis.append("[-] Near 52-week low ({:.0%})".format(range_position))
 
-    # Volatility assessment
     max_score += 1
     if vol < 0.25:
         score += 1
-        analysis.append(f"✓ Low volatility ({vol:.1%} annualized)")
+        analysis.append("[+] Low volatility ({:.1%} annualized)".format(vol))
     elif vol < 0.40:
         score += 0.5
-        analysis.append(f"○ Moderate volatility ({vol:.1%})")
+        analysis.append("[o] Moderate volatility ({:.1%})".format(vol))
     else:
-        analysis.append(f"✗ High volatility ({vol:.1%}) - risky")
+        analysis.append("[-] High volatility ({:.1%}) - risky".format(vol))
 
-    # Calculate final rating
     pct = (score / max_score) * 100 if max_score > 0 else 0
     
     if pct >= 75:
@@ -187,7 +175,7 @@ def analyze_stock(info, hist, price, vol):
         rating = "Avoid"
         color = "#EF5350"
 
-    return rating, f"{score:.1f}/{max_score:.0f}", pct, analysis, color
+    return rating, "{:.1f}/{:.0f}".format(score, max_score), pct, analysis, color
 
 
 @st.cache_data(ttl=300)
@@ -203,17 +191,15 @@ def load_stock(ticker):
         return None, None, None
 
 
-# Sidebar
 st.sidebar.title("Controls")
 ticker = st.sidebar.text_input("Stock Ticker", "AAPL").upper().strip()
 
-# Main content
-st.title("��� Stock Analysis Dashboard")
+st.title("Stock Analysis Dashboard")
 
 stock, info, hist = load_stock(ticker)
 
 if stock is None:
-    st.error(f"Could not load data for '{ticker}'. Check the symbol and try again.")
+    st.error("Could not load data for '{}'. Check the symbol and try again.".format(ticker))
 else:
     name = info.get('longName', ticker)
     price = hist['Close'].iloc[-1]
@@ -221,24 +207,20 @@ else:
     change = price - prev_close
     change_pct = (change / prev_close) * 100
     
-    # Calculate volatility
     returns = np.log(hist['Close'] / hist['Close'].shift(1)).dropna()
     volatility = returns.std() * np.sqrt(252)
 
-    # Header metrics
-    st.subheader(f"{name} ({ticker})")
+    st.subheader("{} ({})".format(name, ticker))
     
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Price", f"${price:.2f}", f"{change:+.2f} ({change_pct:+.1f}%)")
-    m2.metric("Volume", f"{hist['Volume'].iloc[-1]:,.0f}")
-    m3.metric("52W High", f"${hist['Close'][-252:].max():.2f}" if len(hist) >= 252 else "N/A")
-    m4.metric("Volatility", f"{volatility:.1%}")
+    m1.metric("Price", "${:.2f}".format(price), "{:+.2f} ({:+.1f}%)".format(change, change_pct))
+    m2.metric("Volume", "{:,.0f}".format(hist['Volume'].iloc[-1]))
+    m3.metric("52W High", "${:.2f}".format(hist['Close'][-252:].max()) if len(hist) >= 252 else "N/A")
+    m4.metric("Volatility", "{:.1%}".format(volatility))
 
-    # Two columns: chart and analysis
     chart_col, analysis_col = st.columns([1.8, 1.2])
 
     with chart_col:
-        # Candlestick with volume
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                            vertical_spacing=0.03, row_heights=[0.7, 0.3])
         
@@ -247,7 +229,6 @@ else:
             low=hist['Low'], close=hist['Close'], name='Price'
         ), row=1, col=1)
         
-        # Add moving averages
         if len(hist) >= 50:
             ma50 = hist['Close'].rolling(50).mean()
             fig.add_trace(go.Scatter(x=hist.index, y=ma50, name='50 MA', 
@@ -257,7 +238,6 @@ else:
             fig.add_trace(go.Scatter(x=hist.index, y=ma200, name='200 MA',
                                     line=dict(color='purple', width=1)), row=1, col=1)
         
-        # Volume bars
         colors = ['#EF5350' if hist['Close'].iloc[i] < hist['Open'].iloc[i] 
                   else '#26A69A' for i in range(len(hist))]
         fig.add_trace(go.Bar(x=hist.index, y=hist['Volume'], name='Volume',
@@ -281,21 +261,18 @@ else:
         
         rating, score_str, pct, reasons, color = analyze_stock(info, hist, price, volatility)
         
-        # Rating box
-        st.markdown(f"""
-        <div style='background: linear-gradient(135deg, {color}, {color}dd); 
+        st.markdown("""
+        <div style='background: linear-gradient(135deg, {}, {}dd); 
                     padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 15px;'>
-            <h2 style='margin: 0; color: white;'>{rating}</h2>
-            <p style='margin: 5px 0 0 0; color: rgba(255,255,255,0.9);'>Score: {score_str} ({pct:.0f}%)</p>
+            <h2 style='margin: 0; color: white;'>{}</h2>
+            <p style='margin: 5px 0 0 0; color: rgba(255,255,255,0.9);'>Score: {} ({:.0f}%)</p>
         </div>
-        """, unsafe_allow_html=True)
+        """.format(color, color, rating, score_str, pct), unsafe_allow_html=True)
         
-        # Breakdown
         with st.expander("View Detailed Breakdown", expanded=True):
             for reason in reasons:
-                st.markdown(f"- {reason}")
+                st.markdown("- {}".format(reason))
 
-    # Options section
     st.markdown("---")
     st.subheader("Options Chain")
     
@@ -311,16 +288,16 @@ else:
                 st.markdown("**Calls**")
                 calls_display = chain.calls[['strike', 'lastPrice', 'bid', 'ask', 'volume', 'openInterest', 'impliedVolatility']].copy()
                 calls_display.columns = ['Strike', 'Last', 'Bid', 'Ask', 'Vol', 'OI', 'IV']
-                calls_display['IV'] = calls_display['IV'].apply(lambda x: f"{x:.1%}" if pd.notna(x) else "N/A")
+                calls_display['IV'] = calls_display['IV'].apply(lambda x: "{:.1%}".format(x) if pd.notna(x) else "N/A")
                 st.dataframe(calls_display, height=400, use_container_width=True)
             
             with opt_c2:
                 st.markdown("**Puts**")
                 puts_display = chain.puts[['strike', 'lastPrice', 'bid', 'ask', 'volume', 'openInterest', 'impliedVolatility']].copy()
                 puts_display.columns = ['Strike', 'Last', 'Bid', 'Ask', 'Vol', 'OI', 'IV']
-                puts_display['IV'] = puts_display['IV'].apply(lambda x: f"{x:.1%}" if pd.notna(x) else "N/A")
+                puts_display['IV'] = puts_display['IV'].apply(lambda x: "{:.1%}".format(x) if pd.notna(x) else "N/A")
                 st.dataframe(puts_display, height=400, use_container_width=True)
         else:
             st.info("No options available for this stock.")
     except Exception as e:
-        st.warning(f"Could not load options data: {e}")
+        st.warning("Could not load options data: {}".format(e))
