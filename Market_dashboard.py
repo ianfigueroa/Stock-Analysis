@@ -12,6 +12,9 @@ from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Stock Dashboard", page_icon=":chart_with_upwards_trend:", layout="wide")
 
+# Sidebar title
+st.sidebar.title("Stock Analysis")
+
 # Page header
 st.title(":chart_with_upwards_trend: Stock Analysis Dashboard")
 st.markdown("Analyze stocks with technical indicators, fundamentals, and AI-powered recommendations.")

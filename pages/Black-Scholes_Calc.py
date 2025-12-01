@@ -11,6 +11,9 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Options Pricing", page_icon=":bar_chart:", layout="wide")
 
+# Sidebar title
+st.sidebar.title("Stock Analysis")
+
 # Page header
 st.title(":bar_chart: Black-Scholes Options Calculator")
 st.markdown("Price European options and visualize Greeks with interactive sensitivity analysis.")
