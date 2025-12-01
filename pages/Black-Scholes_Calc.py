@@ -11,6 +11,10 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Options Pricing", page_icon=":bar_chart:", layout="wide")
 
+# Page header
+st.title(":bar_chart: Black-Scholes Options Calculator")
+st.markdown("Price European options and visualize Greeks with interactive sensitivity analysis.")
+
 
 def black_scholes(S, K, T, r, sigma, option_type='call'):
     """
@@ -55,9 +59,6 @@ def black_scholes(S, K, T, r, sigma, option_type='call'):
     
     return price, delta, gamma, theta, vega, rho
 
-
-# Page title
-st.title("Black-Scholes Options Calculator")
 
 # Sidebar inputs
 st.sidebar.header("Parameters")
