@@ -1,6 +1,6 @@
 # Stock Analysis Dashboard
 
-A web-based stock analysis tool featuring real-time market data, technical indicators, an AI-powered analysis bot, and a Black-Scholes options calculator.
+A web-based stock analysis tool featuring real-time market data, technical indicators, automated stock scoring, and a Black-Scholes options calculator.
 
 **[Live Demo](https://ianfigueroa-stock-analysis-market-dashboard-gcqasy.streamlit.app/)**
 
@@ -16,7 +16,7 @@ Built with Python, Streamlit, and Plotly.
 - Live options chain with implied volatility data
 - Key financial metrics (market cap, P/E, dividend yield, etc.)
 
-### AI Analysis Bot
+### Analysis Bot
 
 Analyzes stocks and provides buy/hold/sell recommendations based on a 0-100% scoring system:
 
