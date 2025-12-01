@@ -1,23 +1,45 @@
+"""
+Black-Scholes Options Calculator
+Interactive tool for pricing European options and visualizing sensitivities.
+"""
+
 import streamlit as st
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Options Pricing", page_icon=":bar_chart:", layout="wide")
 
+
 def black_scholes(S, K, T, r, sigma, option_type='call'):
+    """
+    Calculate option price and Greeks using Black-Scholes model.
+    
+    Parameters:
+    - S: Current stock price
+    - K: Strike price
+    - T: Time to expiration (in years)
+    - r: Risk-free interest rate (annualized)
+    - sigma: Volatility (annualized)
+    - option_type: 'call' or 'put'
+    
+    Returns tuple of (price, delta, gamma, theta, vega, rho)
+    """
+    # Handle edge cases
     if T <= 0 or sigma <= 0:
         intrinsic = max(0, S - K) if option_type == 'call' else max(0, K - S)
         return intrinsic, 0, 0, 0, 0, 0
     
+    # Calculate d1 and d2 (core of Black-Scholes)
     d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     
+    # Price and delta depend on option type
     if option_type == 'call':
         price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
         delta = norm.cdf(d1)
+        # Theta: time decay per day
         theta = (-S * norm.pdf(d1) * sigma / (2 * np.sqrt(T)) 
                  - r * K * np.exp(-r * T) * norm.cdf(d2)) / 365
     else:
@@ -26,15 +48,18 @@ def black_scholes(S, K, T, r, sigma, option_type='call'):
         theta = (-S * norm.pdf(d1) * sigma / (2 * np.sqrt(T)) 
                  + r * K * np.exp(-r * T) * norm.cdf(-d2)) / 365
     
-    gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))
-    vega = S * norm.pdf(d1) * np.sqrt(T) / 100
+    # Greeks that are the same for calls and puts
+    gamma = norm.pdf(d1) / (S * sigma * np.sqrt(T))  # rate of change of delta
+    vega = S * norm.pdf(d1) * np.sqrt(T) / 100  # sensitivity to 1% vol change
     rho = K * T * np.exp(-r * T) * (norm.cdf(d2) if option_type == 'call' else -norm.cdf(-d2)) / 100
     
     return price, delta, gamma, theta, vega, rho
 
 
+# Page title
 st.title("Black-Scholes Options Calculator")
 
+# Sidebar inputs
 st.sidebar.header("Parameters")
 S = st.sidebar.number_input("Stock Price ($)", min_value=1.0, value=100.0, step=1.0)
 K = st.sidebar.number_input("Strike Price ($)", min_value=1.0, value=100.0, step=1.0)
@@ -42,9 +67,11 @@ T = st.sidebar.slider("Days to Expiration", min_value=1, max_value=730, value=30
 r = st.sidebar.slider("Risk-Free Rate (%)", min_value=0.0, max_value=15.0, value=5.0) / 100
 sigma = st.sidebar.slider("Implied Volatility (%)", min_value=1.0, max_value=150.0, value=25.0) / 100
 
+# Calculate prices and Greeks for both calls and puts
 call_price, call_delta, call_gamma, call_theta, call_vega, call_rho = black_scholes(S, K, T, r, sigma, 'call')
 put_price, put_delta, put_gamma, put_theta, put_vega, put_rho = black_scholes(S, K, T, r, sigma, 'put')
 
+# Display option prices
 st.markdown("### Option Prices")
 col1, col2, col3 = st.columns([1, 1, 1])
 
@@ -53,12 +80,15 @@ with col1:
 with col2:
     st.metric("Put Price", "${:.2f}".format(put_price))
 with col3:
+    # Put-call parity: C - P = S - K*e^(-rT)
+    # If this doesn't hold, there's an arbitrage opportunity
     parity_diff = call_price - put_price - S + K * np.exp(-r * T)
     st.metric("Put-Call Parity", "${:.4f}".format(abs(parity_diff)), 
               "Valid" if abs(parity_diff) < 0.01 else "Check inputs")
 
 st.markdown("---")
 
+# Display Greeks
 st.markdown("### The Greeks")
 
 greeks_col1, greeks_col2 = st.columns(2)
@@ -85,50 +115,69 @@ with greeks_col2:
 
 st.markdown("---")
 
-st.markdown("### Price Sensitivity")
+# Heatmaps showing how price changes with spot and vol
+st.markdown("### Price Sensitivity Heatmaps")
+st.write("See how option prices change with spot price and volatility.")
 
-viz_tab1, viz_tab2 = st.tabs(["Price vs Stock Price", "Price vs Volatility"])
+# Create ranges for the heatmap axes
+spot_range = np.linspace(S * 0.8, S * 1.2, 12)
+vol_range = np.linspace(max(0.05, sigma * 0.5), min(1.5, sigma * 1.5), 12)
 
-with viz_tab1:
-    stock_range = np.linspace(S * 0.7, S * 1.3, 50)
-    call_prices = [black_scholes(s, K, T, r, sigma, 'call')[0] for s in stock_range]
-    put_prices = [black_scholes(s, K, T, r, sigma, 'put')[0] for s in stock_range]
-    
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=stock_range, y=call_prices, name='Call', line=dict(color='#00C853', width=2)))
-    fig.add_trace(go.Scatter(x=stock_range, y=put_prices, name='Put', line=dict(color='#EF5350', width=2)))
-    fig.add_vline(x=K, line_dash="dash", line_color="gray", annotation_text="Strike")
-    fig.add_vline(x=S, line_dash="dot", line_color="white", annotation_text="Current")
-    
-    fig.update_layout(
+# Calculate option prices for each combination
+call_matrix = np.zeros((len(vol_range), len(spot_range)))
+put_matrix = np.zeros((len(vol_range), len(spot_range)))
+
+for i, v in enumerate(vol_range):
+    for j, s in enumerate(spot_range):
+        call_matrix[i, j] = black_scholes(s, K, T, r, v, 'call')[0]
+        put_matrix[i, j] = black_scholes(s, K, T, r, v, 'put')[0]
+
+# Display heatmaps side by side
+hm1, hm2 = st.columns(2)
+
+with hm1:
+    fig_call = go.Figure(data=go.Heatmap(
+        z=call_matrix,
+        x=["${:.0f}".format(s) for s in spot_range],
+        y=["{:.0%}".format(v) for v in vol_range],
+        colorscale='Viridis',
+        text=np.round(call_matrix, 2),
+        texttemplate="%{text}",
+        textfont={"size": 10},
+        hovertemplate="Spot: %{x}<br>Vol: %{y}<br>Price: $%{z:.2f}<extra></extra>"
+    ))
+    fig_call.update_layout(
+        title="Call Price Heatmap",
+        xaxis_title="Spot Price",
+        yaxis_title="Volatility",
         template='plotly_dark',
-        xaxis_title='Stock Price ($)',
-        yaxis_title='Option Price ($)',
-        height=400,
-        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+        height=400
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig_call, use_container_width=True)
 
-with viz_tab2:
-    vol_range = np.linspace(0.05, 1.0, 50)
-    call_by_vol = [black_scholes(S, K, T, r, v, 'call')[0] for v in vol_range]
-    put_by_vol = [black_scholes(S, K, T, r, v, 'put')[0] for v in vol_range]
-    
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(x=vol_range * 100, y=call_by_vol, name='Call', line=dict(color='#00C853', width=2)))
-    fig2.add_trace(go.Scatter(x=vol_range * 100, y=put_by_vol, name='Put', line=dict(color='#EF5350', width=2)))
-    fig2.add_vline(x=sigma * 100, line_dash="dot", line_color="white", annotation_text="Current IV")
-    
-    fig2.update_layout(
+with hm2:
+    fig_put = go.Figure(data=go.Heatmap(
+        z=put_matrix,
+        x=["${:.0f}".format(s) for s in spot_range],
+        y=["{:.0%}".format(v) for v in vol_range],
+        colorscale='Viridis',
+        text=np.round(put_matrix, 2),
+        texttemplate="%{text}",
+        textfont={"size": 10},
+        hovertemplate="Spot: %{x}<br>Vol: %{y}<br>Price: $%{z:.2f}<extra></extra>"
+    ))
+    fig_put.update_layout(
+        title="Put Price Heatmap",
+        xaxis_title="Spot Price",
+        yaxis_title="Volatility",
         template='plotly_dark',
-        xaxis_title='Implied Volatility (%)',
-        yaxis_title='Option Price ($)',
-        height=400,
-        legend=dict(yanchor="top", y=0.99, xanchor="right", x=0.99)
+        height=400
     )
-    st.plotly_chart(fig2, use_container_width=True)
+    st.plotly_chart(fig_put, use_container_width=True)
 
 st.markdown("---")
+
+# P&L diagram at expiration
 st.markdown("### Profit/Loss at Expiration")
 
 price_range = np.linspace(S * 0.5, S * 1.5, 100)
@@ -150,11 +199,21 @@ fig3.update_layout(
 )
 st.plotly_chart(fig3, use_container_width=True)
 
+# Educational section
 with st.expander("About the Greeks"):
     st.markdown("""
-    - **Delta**: Rate of change of option price with respect to stock price
-    - **Gamma**: Rate of change of delta with respect to stock price  
-    - **Theta**: Daily time decay (how much value the option loses per day)
-    - **Vega**: Sensitivity to 1% change in implied volatility
-    - **Rho**: Sensitivity to 1% change in interest rate
+    **Delta** - How much the option price moves when the stock moves $1. 
+    Calls have positive delta (0 to 1), puts have negative (-1 to 0).
+    
+    **Gamma** - How fast delta changes. High gamma means delta is unstable.
+    Gamma is highest for at-the-money options near expiration.
+    
+    **Theta** - Time decay. How much value the option loses each day.
+    Options are wasting assets - theta is almost always negative.
+    
+    **Vega** - Sensitivity to volatility. How much the price changes 
+    when IV moves 1%. Higher for longer-dated options.
+    
+    **Rho** - Sensitivity to interest rates. Usually the least important 
+    Greek for short-term options.
     """)
