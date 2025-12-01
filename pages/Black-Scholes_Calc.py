@@ -119,9 +119,23 @@ st.markdown("---")
 st.markdown("### Price Sensitivity Heatmaps")
 st.write("See how option prices change with spot price and volatility.")
 
-# Create ranges for the heatmap axes
-spot_range = np.linspace(S * 0.8, S * 1.2, 12)
-vol_range = np.linspace(max(0.05, sigma * 0.5), min(1.5, sigma * 1.5), 12)
+with st.expander("How to read the heatmaps"):
+    st.markdown("""
+    The heatmaps show option prices across different combinations of **spot price** (x-axis) 
+    and **implied volatility** (y-axis).
+    
+    - **Brighter colors** = higher option prices
+    - **Darker colors** = lower option prices
+    - **Moving right** = stock price increases (calls get more valuable, puts less)
+    - **Moving up** = volatility increases (both calls and puts get more valuable)
+    
+    Use these to visualize how your option's value might change if the stock moves 
+    or if implied volatility shifts after earnings, news, etc.
+    """)
+
+# Create ranges for the heatmap axes (larger grid for more detail)
+spot_range = np.linspace(S * 0.7, S * 1.3, 15)
+vol_range = np.linspace(max(0.05, sigma * 0.4), min(1.5, sigma * 1.6), 15)
 
 # Calculate option prices for each combination
 call_matrix = np.zeros((len(vol_range), len(spot_range)))
@@ -132,48 +146,45 @@ for i, v in enumerate(vol_range):
         call_matrix[i, j] = black_scholes(s, K, T, r, v, 'call')[0]
         put_matrix[i, j] = black_scholes(s, K, T, r, v, 'put')[0]
 
-# Display heatmaps side by side
-hm1, hm2 = st.columns(2)
+# Display heatmaps stacked (full width for bigger charts)
+fig_call = go.Figure(data=go.Heatmap(
+    z=call_matrix,
+    x=["${:.0f}".format(s) for s in spot_range],
+    y=["{:.0%}".format(v) for v in vol_range],
+    colorscale='Viridis',
+    text=np.round(call_matrix, 2),
+    texttemplate="%{text}",
+    textfont={"size": 10},
+    hovertemplate="Spot: %{x}<br>Vol: %{y}<br>Price: $%{z:.2f}<extra></extra>"
+))
+fig_call.update_layout(
+    title="Call Price Heatmap",
+    xaxis_title="Spot Price",
+    yaxis_title="Volatility",
+    template='plotly_dark',
+    height=500
+)
+st.plotly_chart(fig_call, use_container_width=True)
 
-with hm1:
-    fig_call = go.Figure(data=go.Heatmap(
-        z=call_matrix,
-        x=["${:.0f}".format(s) for s in spot_range],
-        y=["{:.0%}".format(v) for v in vol_range],
-        colorscale='Viridis',
-        text=np.round(call_matrix, 2),
-        texttemplate="%{text}",
-        textfont={"size": 10},
-        hovertemplate="Spot: %{x}<br>Vol: %{y}<br>Price: $%{z:.2f}<extra></extra>"
-    ))
-    fig_call.update_layout(
-        title="Call Price Heatmap",
-        xaxis_title="Spot Price",
-        yaxis_title="Volatility",
-        template='plotly_dark',
-        height=400
-    )
-    st.plotly_chart(fig_call, use_container_width=True)
-
-with hm2:
-    fig_put = go.Figure(data=go.Heatmap(
-        z=put_matrix,
-        x=["${:.0f}".format(s) for s in spot_range],
-        y=["{:.0%}".format(v) for v in vol_range],
-        colorscale='Viridis',
-        text=np.round(put_matrix, 2),
-        texttemplate="%{text}",
-        textfont={"size": 10},
-        hovertemplate="Spot: %{x}<br>Vol: %{y}<br>Price: $%{z:.2f}<extra></extra>"
-    ))
-    fig_put.update_layout(
-        title="Put Price Heatmap",
-        xaxis_title="Spot Price",
-        yaxis_title="Volatility",
-        template='plotly_dark',
-        height=400
-    )
-    st.plotly_chart(fig_put, use_container_width=True)
+# Put heatmap below call (full width for bigger display)
+fig_put = go.Figure(data=go.Heatmap(
+    z=put_matrix,
+    x=["${:.0f}".format(s) for s in spot_range],
+    y=["{:.0%}".format(v) for v in vol_range],
+    colorscale='Viridis',
+    text=np.round(put_matrix, 2),
+    texttemplate="%{text}",
+    textfont={"size": 10},
+    hovertemplate="Spot: %{x}<br>Vol: %{y}<br>Price: $%{z:.2f}<extra></extra>"
+))
+fig_put.update_layout(
+    title="Put Price Heatmap",
+    xaxis_title="Spot Price",
+    yaxis_title="Volatility",
+    template='plotly_dark',
+    height=500
+)
+st.plotly_chart(fig_put, use_container_width=True)
 
 st.markdown("---")
 
