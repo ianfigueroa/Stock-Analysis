@@ -12,8 +12,19 @@ from plotly.subplots import make_subplots
 
 st.set_page_config(page_title="Stock Dashboard", page_icon=":chart_with_upwards_trend:", layout="wide")
 
-# Sidebar title
-st.sidebar.title("Stock Analysis")
+# Add title above sidebar navigation
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"]::before {
+            content: "Stock Analysis";
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding: 20px 20px 10px 20px;
+            margin-bottom: 10px;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # Page header
 st.title(":chart_with_upwards_trend: Stock Analysis Dashboard")

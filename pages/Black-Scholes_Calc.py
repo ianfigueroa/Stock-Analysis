@@ -11,8 +11,19 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Options Pricing", page_icon=":bar_chart:", layout="wide")
 
-# Sidebar title
-st.sidebar.title("Stock Analysis")
+# Add title above sidebar navigation
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"]::before {
+            content: "Stock Analysis";
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding: 20px 20px 10px 20px;
+            margin-bottom: 10px;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # Page header
 st.title(":bar_chart: Black-Scholes Options Calculator")
